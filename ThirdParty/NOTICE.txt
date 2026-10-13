@@ -1,0 +1,2 @@
+SMC.swift adapted from adilkairolla/fan-control (MIT), commit a34c450065fea6ba7a60cf4988637ff89cc99a1a.
+https://github.com/adilkairolla/fan-control
