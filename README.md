@@ -5,6 +5,7 @@
 ![macOS](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-arm64-0d9488)
 ![Swift](https://img.shields.io/badge/Swift-6.4-F05138?logo=swift&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **[下载 0.2.0](https://github.com/sivdead/FanDesk/releases/tag/v0.2.0)** · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
 
@@ -66,3 +67,7 @@ bash scripts/package.sh
 ## 致谢
 
 SMC 读写实现基于 [adilkairolla/fan-control](https://github.com/adilkairolla/fan-control) 的 MIT 许可代码，保留了 [来源声明](ThirdParty/NOTICE.txt) 和 [原始许可](ThirdParty/fan-control-LICENSE)。FanDesk 是独立项目。
+
+## 许可证
+
+FanDesk 采用 [MIT License](LICENSE)。允许使用、修改和分发，包括商业用途；请保留相应版权声明和许可文本。第三方代码保留各自的版权声明。

@@ -11,6 +11,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Library/
 cp "$bin/FanDesk" "$app/Contents/MacOS/FanDesk"
 cp "$bin/FanDeskHelper" "$app/Contents/Library/LaunchServices/FanDeskHelper"
 cp ThirdParty/* "$app/Contents/Resources/"
+cp LICENSE "$app/Contents/Resources/FanDesk-LICENSE.txt"
 cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

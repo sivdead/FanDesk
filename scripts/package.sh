@@ -17,6 +17,7 @@ trap 'rm -rf "$stage"' EXIT
 ditto "$app" "$stage/FanDesk.app"
 ln -s /Applications "$stage/Applications"
 cp docs/install.txt "$stage/安装说明.txt"
+cp LICENSE "$stage/LICENSE.txt"
 asset="FanDesk-$version-macos-arm64.dmg"
 hdiutil create -volname "FanDesk $version" -srcfolder "$stage" -ov -format UDZO "$out/$asset"
 hdiutil verify "$out/$asset"
