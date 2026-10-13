@@ -510,17 +510,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     func applicationDidBecomeActive(_ notification: Notification) { model?.syncLoginStatus() }
-    @objc func showWindow() { window?.makeKeyAndOrderFront(nil); NSApp.activate() }
+    @objc func showWindow() {
+        NSApp.setActivationPolicy(.regular)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+    }
     @objc func showSettings() {
         if settingsWindow == nil {
             let settings = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
                                     styleMask: [.titled, .closable], backing: .buffered, defer: false)
             settings.title = "FanDesk 设置"
             settings.contentView = NSHostingView(rootView: SettingsView(model: model))
-            settings.isReleasedWhenClosed = false; settings.center()
+            settings.isReleasedWhenClosed = false; settings.delegate = self; settings.center()
             settingsWindow = settings
         }
+        NSApp.setActivationPolicy(.regular)
         settingsWindow?.makeKeyAndOrderFront(nil); NSApp.activate()
+    }
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow else { return }
+        let hasOtherWindow = [window, settingsWindow].compactMap { $0 }.contains {
+            $0 !== closingWindow && ($0.isVisible || $0.isMiniaturized)
+        }
+        if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
     }
     @objc func automatic() { model?.automatic() }
     @objc func fullBlast() { model?.fullBlast() }
@@ -552,5 +564,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 let application = NSApplication.shared
 let delegate = AppDelegate()
 application.delegate = delegate
-application.setActivationPolicy(.regular)
+application.setActivationPolicy(.accessory)
 application.run()

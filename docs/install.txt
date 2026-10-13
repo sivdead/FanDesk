@@ -1,9 +1,9 @@
-FanDesk 0.2.0 — 安装说明
+FanDesk — 安装说明
 
 1. 将 FanDesk.app 拖入旁边的 Applications 文件夹。
 2. 从“应用程序”打开 FanDesk，不要直接在磁盘映像里运行。
 3. 本版本未经过 Apple 公证。如果 macOS 提示开发者无法验证，确认下载自
-   https://github.com/sivdead/FanDesk/releases/tag/v0.2.0 后，前往
+   https://github.com/sivdead/FanDesk/releases/latest 后，前往
    “系统设置 → 隐私与安全性”，选择“仍要打开”。按系统提示自行确认。
 4. 在 FanDesk 点击“启用风扇控制”，前往系统登录项设置允许 FanDesk
    在后台运行，并按系统提示完成管理员认证。
