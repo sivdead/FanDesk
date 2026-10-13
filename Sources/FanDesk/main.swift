@@ -124,7 +124,7 @@ private struct FanControlCard: View {
                         .accessibilityIdentifier("fan-\(index)-full")
                     Text("°C").foregroundStyle(.secondary)
                 }
-                Text("低于开始温度保持最低转速；两个温度之间逐步升速。范围 25–90°C，间隔至少 5°C。")
+                Text("日常变化平滑处理，降速较慢；低温逐步降至最低，上限温度立即全速。范围 25–90°C，间隔至少 5°C。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.padding(14).frame(maxWidth: .infinity, alignment: .leading)

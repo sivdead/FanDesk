@@ -92,6 +92,7 @@ public final class ControlEngine {
     public private(set) var failure: String?
     private var lastHeartbeat = 0.0
     private var recoveryPending = false
+    private var responses = [TemperatureResponse(), TemperatureResponse()]
     public init(hardware: FanHardware, thermalEmergency: @escaping () -> Bool = {
         [.serious, .critical].contains(ProcessInfo.processInfo.thermalState)
     }) { self.hardware = hardware; self.thermalEmergency = thermalEmergency }
@@ -116,6 +117,7 @@ public final class ControlEngine {
     }
     public func automatic() {
         active = nil
+        responses = [TemperatureResponse(), TemperatureResponse()]
         do { try hardware.restoreAutomatic(); recoveryPending = false; failure = nil }
         catch { recoveryPending = true; failure = error.localizedDescription }
     }
@@ -127,21 +129,26 @@ public final class ControlEngine {
             if let preset = active {
                 try preset.validate(fanCount: reading.fans.count)
                 let emergency = thermalEmergency() || (reading.sensorCount > 0 && reading.maximum >= 90)
-                let targets = try zip(preset.fans, reading.fans).map { setting, fan -> Double? in
+                let targets = try zip(preset.fans, reading.fans).enumerated().map { index, pair -> Double? in
+                    let (setting, fan) = pair
                     guard fan.minimum.isFinite, fan.maximum.isFinite, fan.minimum > 0,
                           fan.maximum > fan.minimum, fan.maximum <= 20000 else {
                         throw DeskError.invalid("风扇范围读数无效。")
                     }
                     switch setting.mode {
-                    case .automatic: return nil
+                    case .automatic:
+                        responses[index] = TemperatureResponse()
+                        return nil
                     case .constant:
                         guard (fan.minimum...fan.maximum).contains(setting.rpm) else {
                             throw DeskError.invalid("\(fan.title)的固定转速须在 \(Int(fan.minimum))–\(Int(fan.maximum)) RPM 内。")
                         }
+                        responses[index] = TemperatureResponse()
                         return emergency ? fan.maximum : setting.rpm
                     case .temperature:
                         let temperature = try reading.temperature(for: setting.sensor)
-                        return emergency ? fan.maximum : setting.curve.rpm(temperature: temperature, minimum: fan.minimum, maximum: fan.maximum)
+                        return responses[index].target(temperature: temperature, setting: setting, fan: fan,
+                                                       emergency: emergency, now: now)
                     }
                 }
                 try hardware.drive(targets)

@@ -2,7 +2,7 @@
 
 ## 首次安装
 
-从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.0) 下载 `FanDesk-0.2.0-macos-arm64.dmg`，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
+从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 `FanDesk-0.2.2-macos-arm64.dmg`，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
 
 当前包适用于 Apple Silicon 双风扇机型；已验证 Apple M5 Pro（Mac17,8），其他机型尚未实测。
 
@@ -26,7 +26,7 @@ shasum -a 256 -c SHA256SUMS.txt
 
 ## 日常使用
 
-两个风扇可以使用不同模式和温度来源。固定转速须在硬件允许范围内；温控曲线的起始温度和全速温度须相隔至少 5°C。在起始温度以下使用最低转速，在全速温度以上使用最高转速，区间内线性变化。
+两个风扇可以使用不同模式和温度来源。固定转速须在硬件允许范围内；温控曲线的起始温度和全速温度须相隔至少 5°C。曲线决定稳态目标：在起始温度以下为最低转速，区间内线性变化。从 0.2.2 起，温控会平滑日常温度变化，并缓慢降速；原始选中温度达到全速温度时立即使用最高转速，CPU 最高温度和系统热状态保护也立即生效。
 
 “保存”保留预设，“应用”改变当前风扇控制。关闭窗口后应用继续留在菜单栏；退出时尝试恢复系统自动控制。“全部自动”可以随时交回系统管理。
 

@@ -85,10 +85,11 @@ do {
     var thermalEmergency = false
     let engine = ControlEngine(hardware: hardware, thermalEmergency: { thermalEmergency })
     try engine.apply(preset, now: 10)
-    check(hardware.targets == [3350, 3550], "independent hardware maxima")
+    check(hardware.targets == [1350, 1350], "temperature control starts from the current speed")
     engine.heartbeat(now: 14)
     _ = engine.tick(now: 18)
     check(engine.active != nil, "heartbeat renews ownership")
+    check(hardware.targets == [3350, 3550], "temperature response reaches each fan's own curve target")
     _ = engine.tick(now: 20)
     check(engine.active == nil && hardware.autoCalls == 1, "lost app restores automatic")
     try engine.apply(preset, now: 30)
@@ -128,6 +129,10 @@ do {
         FanSetting(sensor: sensor, curve: FanCurve(start: 40, full: 60)),
         FanSetting(sensor: SensorChoice(rawValue: "gpuA"), curve: FanCurve(start: 40, full: 80))])
     try engine.apply(independent, now: 60)
+    engine.heartbeat(now: 64)
+    _ = engine.tick(now: 64)
+    engine.heartbeat(now: 68)
+    _ = engine.tick(now: 68)
     check(hardware.targets == [2350, 3550], "each fan uses its own temperature and curve")
     check(engine.active == independent, "independent preset remains active with an unrelated unavailable sensor")
     let average = try hardware.reading.temperature(for: .cpuAverage)
@@ -136,7 +141,7 @@ do {
     rejects("missing selected sensor rejected") { _ = try hardware.reading.temperature(for: SensorChoice(rawValue: "missing")) }
     rejects("unavailable selected sensor rejected") { _ = try hardware.reading.temperature(for: SensorChoice(rawValue: "batteryA")) }
     hardware.reading.sensors[0].value = nil
-    _ = engine.tick(now: 61)
+    _ = engine.tick(now: 69)
     check(engine.active == nil && hardware.targets.isEmpty, "loss of selected sensor restores all fans")
     hardware.reading.sensors[0].value = .nan
     rejects("nonfinite selected sensor rejected") { _ = try hardware.reading.temperature(for: sensor) }
@@ -230,5 +235,6 @@ do {
     let incompleteCPU = Snapshot(average: 50, maximum: 55, sensorCount: 17, fans: hardware.reading.fans, cpuExpectedCount: 18)
     rejects("incomplete CPU average cannot control fans") { _ = try incompleteCPU.temperature(for: .cpuAverage) }
     rejects("incomplete CPU maximum cannot control fans") { _ = try incompleteCPU.temperature(for: .cpuMaximum) }
+    try runTemperatureResponseChecks()
     print("PASS: \(checks) checks")
 } catch { fputs("FAIL: \(error)\n", stderr); exit(1) }
