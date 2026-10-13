@@ -21,10 +21,9 @@ cat > "$app/Contents/Info.plist" <<EOF
 <key>CFBundleDisplayName</key><string>FanDesk</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.2.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
-<key>FanDeskOwnerUID</key><integer>$(id -u)</integer>
 </dict></plist>
 EOF
 cat > "$app/Contents/Library/LaunchDaemons/local.jingwen.FanDesk.helper.plist" <<'EOF'

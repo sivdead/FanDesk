@@ -35,6 +35,35 @@ final class FakeHardware: FanHardware {
 }
 
 do {
+    var consoleUID: uid_t? = 502
+    let session = ControlSession(currentUser: { consoleUID })
+    let client = NSObject()
+    let clientID = ObjectIdentifier(client)
+    check(session.allows(502), "distribution supports a console user other than the builder")
+    check(!session.allows(501), "inactive users cannot control fans")
+    session.claim(clientID, uid: 502)
+    let sessionHardware = FakeHardware()
+    let sessionEngine = ControlEngine(hardware: sessionHardware, thermalEmergency: { false })
+    try sessionEngine.apply(Preset(), now: 1)
+    session.releaseInactiveOwner { sessionEngine.automatic() }
+    check(sessionEngine.active != nil && session.owner == clientID, "current console user retains control")
+    consoleUID = 503
+    session.releaseInactiveOwner { sessionEngine.automatic() }
+    check(sessionEngine.active == nil && session.owner == nil && sessionHardware.autoCalls == 1, "fast user switching restores automatic and releases ownership")
+    check(!session.allows(502) && session.allows(503), "old connections lose access after a user switch")
+    session.claim(clientID, uid: 503)
+    try sessionEngine.apply(Preset(), now: 2)
+    consoleUID = nil
+    session.releaseInactiveOwner { sessionEngine.automatic() }
+    check(sessionEngine.active == nil && session.owner == nil && !session.allows(503), "logout or missing console state restores automatic and denies access")
+    consoleUID = 0
+    check(!session.allows(0), "loginwindow and root are not interactive controllers")
+    consoleUID = uid_t.max
+    check(!session.allows(uid_t.max), "invalid console UID is rejected")
+    consoleUID = 500
+    check(session.allows(500), "a valid directory account is not tied to local UID allocation")
+    session.releaseInactiveOwner { sessionEngine.automatic() }
+    check(sessionHardware.autoCalls == 2, "an unowned session does not repeatedly reset the hardware")
     let curve = FanCurve()
     check(curve.rpm(temperature: 20, minimum: 1350, maximum: 5350) == 1350, "below threshold clamps to minimum")
     check(curve.rpm(temperature: 55, minimum: 1350, maximum: 5350) == 3350, "linear midpoint")

@@ -13,16 +13,13 @@ final class Bridge: NSObject, FanDeskHelperProtocol {
 final class Service: NSObject, NSXPCListenerDelegate {
     let engine: ControlEngine
     let queue = DispatchQueue(label: "FanDesk.control")
-    var owner: ObjectIdentifier?
+    let session = ControlSession()
     var timers: [DispatchSourceTimer] = []
     var signals: [DispatchSourceSignal] = []
     var power: PowerObserver?
     var sleeping = false
-    let allowedUID: uid_t
-
-    init(allowedUID: uid_t) throws {
-        self.allowedUID = allowedUID
-        engine = ControlEngine(hardware: try Hardware())
+    init(hardware: FanHardware) throws {
+        engine = ControlEngine(hardware: hardware)
         super.init()
         engine.automatic()
         power = try PowerObserver(service: self)
@@ -31,8 +28,9 @@ final class Service: NSObject, NSXPCListenerDelegate {
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             guard !sleeping else { return }
+            session.releaseInactiveOwner { self.engine.automatic() }
             _ = engine.tick(now: ProcessInfo.processInfo.systemUptime)
-            if engine.active == nil { owner = nil }
+            if engine.active == nil { session.clear() }
         }
         timer.resume(); timers.append(timer)
         for sig in [SIGTERM, SIGINT, SIGHUP] {
@@ -44,7 +42,8 @@ final class Service: NSObject, NSXPCListenerDelegate {
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
-        guard connection.effectiveUserIdentifier == allowedUID else { return false }
+        let clientUID = connection.effectiveUserIdentifier
+        guard session.allows(clientUID) else { return false }
         let identity = ObjectIdentifier(connection)
         connection.exportedInterface = NSXPCInterface(with: FanDeskHelperProtocol.self)
         connection.exportedObject = Bridge { [weak self] data, reply in
@@ -52,21 +51,24 @@ final class Service: NSObject, NSXPCListenerDelegate {
             queue.async {
                 let result: HelperResponse
                 do {
+                    self.session.releaseInactiveOwner { self.engine.automatic() }
+                    guard self.session.allows(clientUID) else { throw DeskError.invalid("仅当前登录用户可控制风扇。") }
                     guard data.count < 16384 else { throw DeskError.invalid("请求过大。") }
                     let request = try JSONDecoder().decode(HelperRequest.self, from: data)
                     guard !self.sleeping else { throw DeskError.invalid("系统正在睡眠或尚未完成唤醒。") }
                     let now = ProcessInfo.processInfo.systemUptime
                     switch request.command {
                     case .apply:
-                        guard self.owner == nil || self.owner == identity else { throw DeskError.invalid("已有另一个 FanDesk 窗口控制风扇。") }
+                        guard self.session.owner == nil || self.session.owner == identity else { throw DeskError.invalid("已有另一个 FanDesk 窗口控制风扇。") }
                         guard let preset = request.preset else { throw DeskError.invalid("缺少预设。") }
                         result = try self.engine.apply(preset, now: now)
-                        self.owner = self.engine.active == nil ? nil : identity
+                        if self.engine.active == nil { self.session.clear() }
+                        else { self.session.claim(identity, uid: clientUID) }
                     case .automatic:
-                        self.engine.automatic(); self.owner = nil
+                        self.engine.automatic(); self.session.clear()
                         result = self.engine.tick(now: now)
                     case .heartbeat:
-                        if self.owner == identity { self.engine.heartbeat(now: now) }
+                        if self.session.owner == identity { self.engine.heartbeat(now: now) }
                         result = self.engine.tick(now: now)
                     case .status: result = self.engine.tick(now: now)
                     }
@@ -77,7 +79,7 @@ final class Service: NSObject, NSXPCListenerDelegate {
         }
         connection.invalidationHandler = { [weak self] in
             guard let self else { return }
-            queue.async { if self.owner == identity { self.engine.automatic(); self.owner = nil } }
+            queue.async { if self.session.owner == identity { self.engine.automatic(); self.session.clear() } }
         }
         connection.resume()
         return true
@@ -112,7 +114,7 @@ final class PowerObserver {
         case 0xe0000280:
             guard let service else { IOAllowPowerChange(root, notificationID); return }
             service.queue.async { [self] in
-                service.sleeping = true; service.engine.automatic(); service.owner = nil
+                service.sleeping = true; service.engine.automatic(); service.session.clear()
                 if let failure = service.engine.failure { logger.error("Sleep reset failed: \(failure, privacy: .public)") }
                 else { logger.info("Sleep: released fan control") }
                 IOAllowPowerChange(root, notificationID)
@@ -145,12 +147,8 @@ do {
     }
     let executable = URL(fileURLWithPath: String(cString: executablePath)).resolvingSymlinksInPath()
     let bundle = executable.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    guard let info = NSDictionary(contentsOf: bundle.appendingPathComponent("Contents/Info.plist")),
-          let uid = info["FanDeskOwnerUID"] as? NSNumber, uid.uint32Value >= 501 else {
-        throw DeskError.invalid("缺少安装用户信息。")
-    }
     let requirement = try pinnedRequirement(for: bundle)
-    let service = try Service(allowedUID: uid.uint32Value)
+    let service = try Service(hardware: Hardware())
     let listener = NSXPCListener(machServiceName: DeskPaths.service)
     listener.setConnectionCodeSigningRequirement(requirement)
     listener.delegate = service

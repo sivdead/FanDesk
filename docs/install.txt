@@ -1,0 +1,24 @@
+FanDesk 0.2.0 — 安装说明
+
+1. 将 FanDesk.app 拖入旁边的 Applications 文件夹。
+2. 从“应用程序”打开 FanDesk，不要直接在磁盘映像里运行。
+3. 本版本未经过 Apple 公证。如果 macOS 提示开发者无法验证，确认下载自
+   https://github.com/sivdead/FanDesk/releases/tag/v0.2.0 后，前往
+   “系统设置 → 隐私与安全性”，选择“仍要打开”。按系统提示自行确认。
+4. 在 FanDesk 点击“启用风扇控制”，前往系统登录项设置允许 FanDesk
+   在后台运行，并按系统提示完成管理员认证。
+5. 确认后台服务已连接后，选择并应用风扇设置。
+
+要求：Apple Silicon、两个风扇。最低构建目标为 macOS 14；已验证环境为
+Apple M5 Pro（Mac17,8）和 macOS 27.0.1。其他机型或旧系统尚未验证。
+
+升级：先在旧版选择“全部自动”并退出，在系统登录项设置中关闭 FanDesk
+后台运行，然后移动旧应用留作备份，再复制新版。重新开启后台运行并打开
+新版；系统可能要求重新认证。原有预设保存在用户目录，不会因替换应用丢失。
+
+卸载：先选择“全部自动”，关闭 FanDesk 的登录启动并退出，在系统登录项
+设置中关闭后台运行，最后将 /Applications/FanDesk.app 移到废纸篓。
+预设位于 ~/Library/Application Support/FanDesk/presets.json，可自行保留。
+
+项目与问题反馈：https://github.com/sivdead/FanDesk
+Apple 官方打开说明：https://support.apple.com/102445
