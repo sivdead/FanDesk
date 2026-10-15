@@ -7,7 +7,7 @@
 ![Swift](https://img.shields.io/badge/Swift-6.4-F05138?logo=swift&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**[下载 0.2.2](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2)** · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
+**[下载 0.2.2（已公证）](https://github.com/sivdead/FanDesk/releases/download/v0.2.2/FanDesk-0.2.2-macos-arm64-notarized.dmg)** · [版本说明](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
 
 ![FanDesk 主界面](docs/images/dashboard.png)
 
@@ -25,12 +25,12 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 `FanDesk-0.2.2-macos-arm64.dmg`。
+1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 `FanDesk-0.2.2-macos-arm64-notarized.dmg`。
 2. 打开磁盘映像，将 **FanDesk.app** 拖入 **Applications**，再从“应用程序”打开。
 3. 点击 **启用风扇控制**，按系统提示允许 FanDesk 后台运行。
 4. 选择预设或编辑两个风扇的设置，点击 **应用**。
 
-> 当前安装包采用本地签名，尚未经过 Apple 公证。首次打开可能需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。[首次授权、升级与卸载说明 →](docs/installation.md)
+> 官方公证安装包已使用 Developer ID 正式签名并通过 Apple 公证，应用和磁盘映像均附带离线公证凭证。首次打开按 macOS 的正常来源确认提示操作，风扇控制仍需系统后台授权。[首次授权、升级与卸载说明 →](docs/installation.md)
 
 ## 兼容性
 
@@ -53,7 +53,7 @@ cd FanDesk
 bash scripts/build.sh
 ```
 
-应用输出到 `build/FanDesk.app`，构建脚本会同时运行自动检查。打包磁盘映像：
+应用输出到 `build/FanDesk.app`，构建脚本会同时运行自动检查。源码构建默认采用本地签名。打包磁盘映像：
 
 ```sh
 bash scripts/package.sh

@@ -2,18 +2,20 @@
 
 ## 首次安装
 
-从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 `FanDesk-0.2.2-macos-arm64.dmg`，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
+从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 **`FanDesk-0.2.2-macos-arm64-notarized.dmg`**，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
 
 当前包适用于 Apple Silicon 双风扇机型；已验证 Apple M5 Pro（Mac17,8），其他机型尚未实测。
 
 ### macOS 首次打开确认
 
-本版本是 ad-hoc 本地签名，没有 Developer ID 签名和 Apple 公证。如果 macOS 提示开发者无法验证，先确认安装包来自本项目的 GitHub Release，再按 [Apple 官方说明](https://support.apple.com/102445) 在“系统设置 → 隐私与安全性”中选择“仍要打开”，自行确认系统提示。受组织管理的 Mac 可能不允许该操作。
+文件名带 `-notarized` 的官方安装包已使用 Developer ID 正式签名并通过 Apple 公证。应用和磁盘映像均附带公证凭证，供 macOS 离线检查；首次打开时按系统的正常来源确认提示操作。
 
-如需校验下载完整性，将安装包与 Release 的 `SHA256SUMS.txt` 放在同一目录，运行：
+Release 也保留原始 `FanDesk-0.2.2-macos-arm64.dmg` 和对应的 `SHA256SUMS.txt`，它们采用 ad-hoc 本地签名、未经过公证。建议使用带 `-notarized` 的安装包。
+
+如需校验下载完整性，将公证安装包与 Release 的 **`SHA256SUMS-notarized.txt`** 放在同一目录，运行：
 
 ```sh
-shasum -a 256 -c SHA256SUMS.txt
+shasum -a 256 -c SHA256SUMS-notarized.txt
 ```
 
 ### 后台服务授权
@@ -43,7 +45,7 @@ shasum -a 256 -c SHA256SUMS.txt
 3. 将旧应用移动到备份位置，再复制新版到 `/Applications/FanDesk.app`。
 4. 重新开启后台运行并打开新版。必要时点击“启用风扇控制”刷新服务注册；系统可能再次要求确认。
 
-应用更新会改变本地签名，因此不要直接覆盖正在运行的版本。预设文件不在应用包内，替换应用不会删除预设。
+应用更新会改变代码签名，因此不要直接覆盖正在运行的版本。预设文件不在应用包内，替换应用不会删除预设。
 
 ## 卸载
 

@@ -39,6 +39,14 @@ bash scripts/package.sh
 
 发布前应挂载磁盘映像，检查内含应用签名、版本与校验和。源码提交、Git 标签和 Release 安装包必须对应同一份构建。
 
+## 正式签名与公证
+
+`build.sh` 和 `package.sh` 默认生成本地签名包，使用 `docs/install.txt`。正式发布包需要开发者自己的 Developer ID Application 证书和钥匙串中的公证凭据；私钥和密码均不放入仓库。
+
+正式分发时，先为后台服务、再为主应用签名，启用 Hardened Runtime 并添加安全时间戳。提交应用 ZIP 至 Apple，确认 Accepted 且日志无错误后，为应用附加并验证公证凭证。将已附凭证的应用、Applications 快捷方式、MIT 许可证及 [公证包安装说明](install-notarized.txt) 制作成独立 DMG，正式签名后再提交磁盘映像公证。确认 Accepted 后为映像附加凭证，完成 Gatekeeper、`syspolicy_check`、只读挂载和校验和检查，再生成最终下载校验文件。
+
+0.2.2 公证包使用与原始发布相同的程序代码；差异为正式签名、运行保护、时间戳和公证凭证，安装说明也相应更新。原始资产和 `v0.2.2` 标签保留，公证包使用 `-notarized.dmg` 后缀及独立校验文件。Apple 的完整流程见 [自定义公证工作流](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
+
 ## 代码结构
 
 | 路径 | 职责 |
