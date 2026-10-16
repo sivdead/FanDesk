@@ -431,6 +431,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         return try? snapshot.temperature(for: model.saved.preferences.menuSensor)
     }
 
+    private var statusIcon: MenuIcon?
+
     private func updateStatus() {
         guard let button = status?.button else { return }
         let preferences = model.saved.preferences
@@ -440,20 +442,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         if let index = preferences.menuFan {
             rpmLabel = model.snapshot?.fans.first(where: { $0.id == index }).map { String(format: "%.0f RPM", $0.actual) } ?? "— RPM"
         }
-        if preferences.menuIcon == .none { button.image = nil }
-        else {
-            let icon = NSImage(systemSymbolName: "fanblades.fill", accessibilityDescription: "FanDesk")
-            icon?.isTemplate = preferences.menuIcon == .monochrome
-            button.image = icon
-            button.contentTintColor = preferences.menuIcon == .colored ? .systemTeal : nil
+        if statusIcon != preferences.menuIcon {
+            statusIcon = preferences.menuIcon
+            if preferences.menuIcon == .none { button.image = nil }
+            else {
+                let icon = NSImage(systemSymbolName: "fanblades.fill", accessibilityDescription: "FanDesk")
+                icon?.isTemplate = preferences.menuIcon == .monochrome
+                button.image = icon
+                button.contentTintColor = preferences.menuIcon == .colored ? .systemTeal : nil
+            }
         }
         let text: String
         if let rpmLabel { text = preferences.menuTwoLines ? "\(temperatureLabel)\n\(rpmLabel)" : "\(temperatureLabel) · \(rpmLabel)" }
         else { text = temperatureLabel }
         let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .center
         let twoLines = preferences.menuTwoLines && rpmLabel != nil
-        button.attributedTitle = NSAttributedString(string: (button.image == nil ? "" : " ") + text,
-                                                    attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: twoLines ? 9 : 12, weight: .regular), .paragraphStyle: paragraph])
+        let title = NSAttributedString(string: (button.image == nil ? "" : " ") + text,
+                                       attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: twoLines ? 9 : 12, weight: .regular), .paragraphStyle: paragraph])
+        if !button.attributedTitle.isEqual(to: title) { button.attributedTitle = title }
         button.imagePosition = .imageLeading
         button.toolTip = "\(model.modeTitle)\n\(sensorName(preferences.menuSensor, in: model))：\(temperatureText(temperature))"
         button.setAccessibilityLabel("FanDesk，\(model.modeTitle)，\(text.replacingOccurrences(of: "\n", with: "，"))")
@@ -511,11 +517,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     func applicationDidBecomeActive(_ notification: Notification) { model?.syncLoginStatus() }
     @objc func showWindow() {
+        model.setInterfaceVisible(true)
         NSApp.setActivationPolicy(.regular)
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
     @objc func showSettings() {
+        model.setInterfaceVisible(true)
         if settingsWindow == nil {
             let settings = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
                                     styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -533,7 +541,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             $0 !== closingWindow && ($0.isVisible || $0.isMiniaturized)
         }
         if !hasOtherWindow { NSApp.setActivationPolicy(.accessory) }
+        updateInterfaceVisibility(excluding: closingWindow)
     }
+    private func updateInterfaceVisibility(excluding closingWindow: NSWindow? = nil) {
+        model?.setInterfaceVisible([window, settingsWindow].compactMap { $0 }.contains {
+            $0 !== closingWindow && $0.isVisible && !$0.isMiniaturized && $0.occlusionState.contains(.visible)
+        })
+    }
+    func windowDidChangeOcclusionState(_ notification: Notification) { updateInterfaceVisibility() }
+    func windowDidMiniaturize(_ notification: Notification) { updateInterfaceVisibility() }
+    func windowDidDeminiaturize(_ notification: Notification) { updateInterfaceVisibility() }
     @objc func automatic() { model?.automatic() }
     @objc func fullBlast() { model?.fullBlast() }
     @objc func menuFanAutomatic(_ sender: NSMenuItem) {

@@ -21,8 +21,8 @@ cat > "$app/Contents/Info.plist" <<EOF
 <key>CFBundleName</key><string>FanDesk</string>
 <key>CFBundleDisplayName</key><string>FanDesk</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.2</string>
-<key>CFBundleVersion</key><string>5</string>
+<key>CFBundleShortVersionString</key><string>0.2.3</string>
+<key>CFBundleVersion</key><string>7</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
@@ -33,6 +33,7 @@ cat > "$app/Contents/Library/LaunchDaemons/local.jingwen.FanDesk.helper.plist" <
 <plist version="1.0"><dict>
 <key>Label</key><string>local.jingwen.FanDesk.helper</string>
 <key>BundleProgram</key><string>Contents/Library/LaunchServices/FanDeskHelper</string>
+<key>ProgramArguments</key><array><string>FanDeskHelper</string></array>
 <key>MachServices</key><dict><key>local.jingwen.FanDesk.helper</key><true/></dict>
 <key>RunAtLoad</key><true/>
 <key>KeepAlive</key><true/>

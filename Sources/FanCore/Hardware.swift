@@ -91,6 +91,7 @@ public final class ControlEngine {
     public private(set) var active: Preset?
     public private(set) var failure: String?
     private var lastHeartbeat = 0.0
+    private var lastSnapshot: Snapshot?
     private var recoveryPending = false
     private var responses = [TemperatureResponse(), TemperatureResponse()]
     public init(hardware: FanHardware, thermalEmergency: @escaping () -> Bool = {
@@ -117,9 +118,18 @@ public final class ControlEngine {
     }
     public func automatic() {
         active = nil
+        lastSnapshot = nil
         responses = [TemperatureResponse(), TemperatureResponse()]
         do { try hardware.restoreAutomatic(); recoveryPending = false; failure = nil }
         catch { recoveryPending = true; failure = error.localizedDescription }
+    }
+    // Heartbeats acknowledge liveness without repeating a hardware/control pass.
+    // Recovery, lease expiry and OS thermal emergencies still bypass the cache.
+    public func status(now: Double) -> HelperResponse {
+        if recoveryPending || (active != nil && (now - lastHeartbeat > 5 || thermalEmergency())) {
+            return tick(now: now)
+        }
+        return HelperResponse(snapshot: lastSnapshot, activePreset: active, error: failure)
     }
     public func tick(now: Double) -> HelperResponse {
         if recoveryPending { automatic() }
@@ -153,8 +163,10 @@ public final class ControlEngine {
                 }
                 try hardware.drive(targets)
             }
+            lastSnapshot = reading
             return HelperResponse(snapshot: reading, activePreset: active, error: failure)
         } catch {
+            lastSnapshot = nil
             let reason = error.localizedDescription
             if active != nil || recoveryPending { automatic() }
             let resetFailure = recoveryPending ? failure : nil

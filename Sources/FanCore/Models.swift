@@ -133,7 +133,7 @@ public struct TemperatureReading: Codable, Identifiable, Equatable {
     }
 }
 
-public struct Snapshot: Codable {
+public struct Snapshot: Codable, Equatable {
     public var average: Double
     public var maximum: Double
     public var sensorCount: Int

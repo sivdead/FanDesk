@@ -25,11 +25,16 @@ final class Service: NSObject, NSXPCListenerDelegate {
         power = try PowerObserver(service: self)
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: 1)
+        var sampleDue = true
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             guard !sleeping else { return }
             session.releaseInactiveOwner { self.engine.automatic() }
-            _ = engine.tick(now: ProcessInfo.processInfo.systemUptime)
+            let now = ProcessInfo.processInfo.systemUptime
+            // One watchdog per second; every other tick also samples hardware.
+            // Heartbeats do not reset this cadence or add another control pass.
+            _ = sampleDue ? engine.tick(now: now) : engine.status(now: now)
+            sampleDue.toggle()
             if engine.active == nil { session.clear() }
         }
         timer.resume(); timers.append(timer)
@@ -69,8 +74,8 @@ final class Service: NSObject, NSXPCListenerDelegate {
                         result = self.engine.tick(now: now)
                     case .heartbeat:
                         if self.session.owner == identity { self.engine.heartbeat(now: now) }
-                        result = self.engine.tick(now: now)
-                    case .status: result = self.engine.tick(now: now)
+                        result = self.engine.status(now: now)
+                    case .status: result = self.engine.status(now: now)
                     }
                 } catch { result = HelperResponse(error: error.localizedDescription) }
                 let encoded = (try? JSONEncoder().encode(result)) ?? Data("{}".utf8)

@@ -7,7 +7,7 @@
 ![Swift](https://img.shields.io/badge/Swift-6.4-F05138?logo=swift&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**[下载 0.2.2（已公证）](https://github.com/sivdead/FanDesk/releases/download/v0.2.2/FanDesk-0.2.2-macos-arm64-notarized.dmg)** · [版本说明](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
+**[下载 0.2.3（已公证）](https://github.com/sivdead/FanDesk/releases/download/v0.2.3/FanDesk-0.2.3-macos-arm64-notarized.dmg)** · [版本说明](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
 
 ![FanDesk 主界面](docs/images/dashboard.png)
 
@@ -19,13 +19,14 @@
 - **传感器监测** — 查看 CPU、GPU、电池、SSD 等温度，支持分类和搜索。
 - **命名预设** — 保存、切换、重命名和删除设置，保留未保存修改提示。
 - **菜单栏操作** — 查看温度和转速，切换预设，快速恢复自动控制。
+- **减少后台开销** — 常规采样每 2 秒一次，隐藏窗口暂停遥测重绘，后台每秒检查失联和系统热状态。
 - **启动与恢复** — 支持登录启动、隐藏窗口，以及启动和唤醒时恢复设置。
 
 退出、连接中断或控制失败时，FanDesk 会尝试将风扇交回系统管理。固定转速受硬件上下限约束；手动控制期间保留高温保护。
 
 ## 安装
 
-1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 `FanDesk-0.2.2-macos-arm64-notarized.dmg`。
+1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) 下载 `FanDesk-0.2.3-macos-arm64-notarized.dmg`。
 2. 打开磁盘映像，将 **FanDesk.app** 拖入 **Applications**，再从“应用程序”打开。
 3. 点击 **启用风扇控制**，按系统提示允许 FanDesk 后台运行。
 4. 选择预设或编辑两个风扇的设置，点击 **应用**。

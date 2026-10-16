@@ -17,9 +17,10 @@ final class FakeHardware: FanHardware {
         TemperatureReading(id: "gpuA", name: "GPU", category: "GPU", value: 60),
         TemperatureReading(id: "batteryA", name: "电池", category: "电池", value: nil)])
     var targets: [Double?] = []
-    var autoCalls = 0, driveCalls = 0
+    var autoCalls = 0, driveCalls = 0, readCalls = 0
     var failRead = false, failWrite = false, failReset = false
     func snapshot() throws -> Snapshot {
+        readCalls += 1
         if failRead { throw DeskError.invalid("sensor unavailable") }; return reading
     }
     func drive(_ values: [Double?]) throws {
@@ -236,5 +237,6 @@ do {
     rejects("incomplete CPU average cannot control fans") { _ = try incompleteCPU.temperature(for: .cpuAverage) }
     rejects("incomplete CPU maximum cannot control fans") { _ = try incompleteCPU.temperature(for: .cpuMaximum) }
     try runTemperatureResponseChecks()
+    try runEnergyChecks()
     print("PASS: \(checks) checks")
 } catch { fputs("FAIL: \(error)\n", stderr); exit(1) }

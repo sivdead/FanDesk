@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import ServiceManagement
+import Combine
 import FanCore
 
 var count = 0
@@ -158,6 +159,28 @@ do {
     login.finishUnregister()
     check(!model.saved.preferences.launchAtLogin && model.saved.preferences.menuFan == 1 && model.saved.preferences.menuIcon == .colored,
           "late login callback preserves later display preferences")
+}
+do {
+    let (model, transport, _, _) = fixture("hidden-telemetry")
+    var renders = 0, statusUpdates = 0
+    let subscription = model.objectWillChange.sink { renders += 1 }
+    model.changed = { statusUpdates += 1 }
+    var updated = reading; updated.average = 56
+    model.poll(); transport.pending[0].reply(HelperResponse(snapshot: updated)); drain()
+    check(model.snapshot?.average == 56 && statusUpdates == 1 && renders == 0,
+          "hidden windows do not redraw while menu-bar telemetry stays current")
+    model.setInterfaceVisible(true)
+    check(renders == 1, "showing a window immediately publishes the newest cached telemetry")
+    updated.average = 57
+    model.poll(); transport.pending[1].reply(HelperResponse(snapshot: updated)); drain()
+    check(model.snapshot?.average == 57 && renders == 2, "visible windows receive fresh telemetry")
+    model.poll(); transport.pending[2].reply(HelperResponse(snapshot: updated)); drain()
+    check(renders == 2, "unchanged helper status does not invalidate the entire interface")
+    model.setInterfaceVisible(false)
+    updated.average = 58
+    model.poll(); transport.pending[3].reply(HelperResponse(snapshot: updated)); drain()
+    check(model.snapshot?.average == 58 && renders == 2, "hiding the window pauses telemetry redraws again")
+    withExtendedLifetime(subscription) {}
 }
 func event(_ id: AEEventID = AEEventID(0x6f617070)) -> NSAppleEventDescriptor {
     NSAppleEventDescriptor(eventClass: AEEventClass(0x61657674), eventID: id, targetDescriptor: nil, returnID: AEReturnID(-1), transactionID: AETransactionID(0))

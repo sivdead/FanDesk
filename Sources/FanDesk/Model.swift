@@ -19,7 +19,8 @@ struct SystemLoginManager: LoginManaging {
 final class DeskModel: ObservableObject {
     @Published var saved = SavedState()
     @Published var draft = Preset()
-    @Published var snapshot: Snapshot?
+    // Menu-bar telemetry stays current while hidden windows stop observing it.
+    var snapshot: Snapshot?
     @Published var active: Preset?
     @Published var notice = "正在读取传感器…"
     @Published var helperReady = false
@@ -36,6 +37,7 @@ final class DeskModel: ObservableObject {
     private var timer: Timer?
     private var connection: NSXPCConnection?
     private var polling = false
+    private var interfaceVisible = false
     private var closing = false
     private var sleeping = false
     private var startupPending = true
@@ -65,16 +67,27 @@ final class DeskModel: ObservableObject {
                 let hardware = try Hardware()
                 self?.hardware = hardware
                 let reading = try hardware.snapshot()
-                DispatchQueue.main.async { self?.snapshot = reading; self?.changed?() }
+                DispatchQueue.main.async { self?.updateSnapshot(reading); self?.changed?() }
             } catch { DispatchQueue.main.async { self?.notice = error.localizedDescription } }
         }
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.poll() }
+        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.poll() }
+        timer.tolerance = 0.2
         RunLoop.main.add(timer, forMode: .common); self.timer = timer
         poll()
     }
     deinit {
         timer?.invalidate()
         for token in lifecycleObservers { NSWorkspace.shared.notificationCenter.removeObserver(token) }
+    }
+    func setInterfaceVisible(_ visible: Bool) {
+        guard interfaceVisible != visible else { return }
+        interfaceVisible = visible
+        if visible { objectWillChange.send() }
+    }
+    private func updateSnapshot(_ reading: Snapshot) {
+        guard snapshot != reading else { return }
+        if interfaceVisible { objectWillChange.send() }
+        snapshot = reading
     }
     var service: SMAppService { .daemon(plistName: DeskPaths.daemonPlist) }
     var hasUnsavedChanges: Bool { draft != saved.presets.first(where: { $0.id == draft.id }) }
@@ -405,11 +418,13 @@ final class DeskModel: ObservableObject {
     }
     private func accept(_ result: HelperResponse?) {
         let wasReady = helperReady, wasActive = active != nil
-        helperReady = result != nil
+        if helperReady != (result != nil) { helperReady = result != nil }
         guard let result else { active = nil; notice = "后台服务未连接，当前仅监测。"; return }
-        snapshot = result.snapshot ?? snapshot
-        if let received = result.activePreset, let named = saved.presets.first(where: { $0.id == received.id && $0.fans == received.fans }) { active = named }
-        else { active = result.activePreset }
+        if let reading = result.snapshot { updateSnapshot(reading) }
+        let received = result.activePreset.flatMap { received in
+            saved.presets.first(where: { $0.id == received.id && $0.fans == received.fans }) ?? received
+        }
+        if active != received { active = received }
         if let error = result.error { notice = error }
         else if wasActive && active == nil && !sleeping { notice = "已恢复系统自动控制，需要继续时请重新应用预设。" }
         else if !wasReady { notice = "后台服务已连接。" }
@@ -426,19 +441,23 @@ final class DeskModel: ObservableObject {
     }
     func poll() {
         guard !closing, !sleeping, !polling, !controlBusy else { return }
-        if injectedTransport == nil { competitor = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.crystalidea.macsfancontrol").isEmpty }
+        if injectedTransport == nil {
+            let running = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.crystalidea.macsfancontrol").isEmpty
+            if competitor != running { competitor = running }
+        }
         if competitor && active != nil { automatic(); return }
-        needsApproval = service.status == .requiresApproval
+        let helperStatus = service.status
+        if needsApproval != (helperStatus == .requiresApproval) { needsApproval = helperStatus == .requiresApproval }
         polling = true
         let epoch = controlEpoch
-        if injectedTransport != nil || service.status == .enabled {
+        if injectedTransport != nil || helperStatus == .enabled {
             send(HelperRequest(.heartbeat)) { [weak self] response in
                 guard let self, !closing else { return }
                 guard epoch == controlEpoch, !sleeping else { return }
                 if let response { accept(response); polling = false }
-                else { helperReady = false; active = nil; localRead() }
+                else { if helperReady { helperReady = false }; if active != nil { active = nil }; localRead() }
             }
-        } else { helperReady = false; localRead() }
+        } else { if helperReady { helperReady = false }; localRead() }
     }
     private func localRead() {
         monitor.async { [weak self] in
@@ -447,7 +466,7 @@ final class DeskModel: ObservableObject {
                 guard let hardware else { DispatchQueue.main.async { self.polling = false }; return }
                 let value = try hardware.snapshot()
                 DispatchQueue.main.async {
-                    self.snapshot = value; self.polling = false
+                    self.updateSnapshot(value); self.polling = false
                     if self.notice == "正在读取传感器…" { self.notice = "预设可以直接保存；启用后台服务后即可控制风扇。" }
                     self.changed?()
                 }

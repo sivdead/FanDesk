@@ -2,7 +2,7 @@
 
 ## 首次安装
 
-从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.2) 下载 **`FanDesk-0.2.2-macos-arm64-notarized.dmg`**，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
+从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) 下载 **`FanDesk-0.2.3-macos-arm64-notarized.dmg`**，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
 
 当前包适用于 Apple Silicon 双风扇机型；已验证 Apple M5 Pro（Mac17,8），其他机型尚未实测。
 
@@ -10,7 +10,7 @@
 
 文件名带 `-notarized` 的官方安装包已使用 Developer ID 正式签名并通过 Apple 公证。应用和磁盘映像均附带公证凭证，供 macOS 离线检查；首次打开时按系统的正常来源确认提示操作。
 
-Release 也保留原始 `FanDesk-0.2.2-macos-arm64.dmg` 和对应的 `SHA256SUMS.txt`，它们采用 ad-hoc 本地签名、未经过公证。建议使用带 `-notarized` 的安装包。
+历史 0.2.2 Release 保留原始 `FanDesk-0.2.2-macos-arm64.dmg` 和对应的 `SHA256SUMS.txt`，它们采用 ad-hoc 本地签名、未经过公证。建议使用最新的公证安装包。
 
 如需校验下载完整性，将公证安装包与 Release 的 **`SHA256SUMS-notarized.txt`** 放在同一目录，运行：
 
@@ -28,7 +28,9 @@ shasum -a 256 -c SHA256SUMS-notarized.txt
 
 ## 日常使用
 
-两个风扇可以使用不同模式和温度来源。固定转速须在硬件允许范围内；温控曲线的起始温度和全速温度须相隔至少 5°C。曲线决定稳态目标：在起始温度以下为最低转速，区间内线性变化。从 0.2.2 起，温控会平滑日常温度变化，并缓慢降速；原始选中温度达到全速温度时立即使用最高转速，CPU 最高温度和系统热状态保护也立即生效。
+两个风扇可以使用不同模式和温度来源。固定转速须在硬件允许范围内；温控曲线的起始温度和全速温度须相隔至少 5°C。曲线决定稳态目标：在起始温度以下为最低转速，区间内线性变化。从 0.2.2 起，温控会平滑日常温度变化，并缓慢降速；检测到原始选中温度达到全速温度或 CPU 最高温度达到 90°C 时，保护升速直接生效，不受平滑限制。
+
+从 0.2.3 起，常规硬件采样和遥测刷新约每 2 秒一次，温度与传感器故障在下一次采样时处理。后台仍每秒检查失联超时和系统热状态，serious/critical 热状态、超时恢复与恢复失败重试均绕过读数缓存。隐藏、最小化或完全遮挡窗口会暂停遥测重绘，风扇控制和菜单栏读数继续运行。
 
 “保存”保留预设，“应用”改变当前风扇控制。关闭窗口后应用继续留在菜单栏；退出时尝试恢复系统自动控制。“全部自动”可以随时交回系统管理。
 
