@@ -47,6 +47,10 @@ bash scripts/package.sh
 
 0.2.2 公证包使用与原始发布相同的程序代码；差异为正式签名、运行保护、时间戳和公证凭证，安装说明也相应更新。原始资产和 `v0.2.2` 标签保留，公证包使用 `-notarized.dmg` 后缀及独立校验文件。Apple 的完整流程见 [自定义公证工作流](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
 
+## 发布说明
+
+每版说明以用户能感知的新增、改进和修复为主，保留必要的升级提醒及下载链接。签名、公证和校验步骤放在安装与开发文档，测试数据放在验证记录；只有这些事项本身发生变化时，才在发布说明中简短提及。
+
 ## 代码结构
 
 | 路径 | 职责 |
