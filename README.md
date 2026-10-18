@@ -7,7 +7,7 @@
 ![Swift](https://img.shields.io/badge/Swift-6.4-F05138?logo=swift&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**[下载 0.2.3（已公证）](https://github.com/sivdead/FanDesk/releases/download/v0.2.3/FanDesk-0.2.3-macos-arm64-notarized.dmg)** · [版本说明](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
+**[下载 0.2.4（已公证）](https://github.com/sivdead/FanDesk/releases/download/v0.2.4/FanDesk-0.2.4-macos-arm64-notarized.dmg)** · [版本说明](https://github.com/sivdead/FanDesk/releases/tag/v0.2.4) · [安装指南](docs/installation.md) · [提交问题](https://github.com/sivdead/FanDesk/issues)
 
 ![FanDesk 主界面](docs/images/dashboard.png)
 
@@ -26,7 +26,7 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) 下载 `FanDesk-0.2.3-macos-arm64-notarized.dmg`。
+1. 从 [Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.4) 下载 `FanDesk-0.2.4-macos-arm64-notarized.dmg`。
 2. 打开磁盘映像，将 **FanDesk.app** 拖入 **Applications**，再从“应用程序”打开。
 3. 点击 **启用风扇控制**，按系统提示允许 FanDesk 后台运行。
 4. 选择预设或编辑两个风扇的设置，点击 **应用**。

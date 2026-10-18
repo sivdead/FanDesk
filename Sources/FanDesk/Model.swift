@@ -16,6 +16,19 @@ struct SystemLoginManager: LoginManaging {
     func unregister(_ completion: @escaping (Error?) -> Void) { SMAppService.mainApp.unregister(completionHandler: completion) }
 }
 
+// UI layout and modal work must not delay the helper's five-second lease.
+// This timer only renews liveness; telemetry and all model updates stay on main.
+final class HelperHeartbeat {
+    private let timer: DispatchSourceTimer
+    init(send: @escaping () -> Void) {
+        timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "FanDesk.heartbeat"))
+        timer.schedule(deadline: .now() + 2, repeating: 2, leeway: .milliseconds(200))
+        timer.setEventHandler(handler: send)
+        timer.resume()
+    }
+    deinit { timer.cancel() }
+}
+
 final class DeskModel: ObservableObject {
     @Published var saved = SavedState()
     @Published var draft = Preset()
@@ -35,6 +48,7 @@ final class DeskModel: ObservableObject {
     private let loginManager: LoginManaging
     private var hardware: Hardware?
     private var timer: Timer?
+    private var heartbeat: HelperHeartbeat?
     private var connection: NSXPCConnection?
     private var polling = false
     private var interfaceVisible = false
@@ -215,7 +229,8 @@ final class DeskModel: ObservableObject {
     func fullBlast() {
         guard let snapshot else { notice = "尚未读取到风扇范围。"; return }
         let value = Preset(name: "全速", fans: snapshot.fans.map { FanSetting(mode: .constant, rpm: $0.maximum) })
-        applyPreset(value, adoptDraft: !hasUnsavedChanges || draft == active)
+        // This is a temporary control override, not an edit to the selected preset.
+        applyPreset(value)
     }
     func useActiveConfiguration() {
         guard !controlBusy, let active else { return }
@@ -369,6 +384,7 @@ final class DeskModel: ObservableObject {
                             guard !self.closing, !self.sleeping, epoch == self.controlEpoch else { return }
                             self.controlBusy = false
                             if let error { self.notice = "后台更新失败：\(error.localizedDescription)"; return }
+                            self.heartbeat = nil
                             self.connection?.invalidate(); self.connection = nil
                             self.enableHelper()
                         }
@@ -388,18 +404,28 @@ final class DeskModel: ObservableObject {
         let new = NSXPCConnection(machServiceName: DeskPaths.service, options: .privileged)
         new.setCodeSigningRequirement(try pinnedRequirement(for: helper))
         new.remoteObjectInterface = NSXPCInterface(with: FanDeskHelperProtocol.self)
+        let heartbeatData = try JSONEncoder().encode(HelperRequest(.heartbeat))
         let lost = { [weak self, weak new] in
             DispatchQueue.main.async {
                 guard self?.connection === new else { return }
+                self?.heartbeat = nil
                 new?.invalidate(); self?.connection = nil; self?.helperReady = false; self?.active = nil
                 if self?.sleeping == false { self?.notice = "后台连接中断，恢复连接后请重新应用预设。" }
             }
         }
         new.invalidationHandler = lost; new.interruptionHandler = lost
-        new.resume(); connection = new; return new
+        new.resume(); connection = new
+        heartbeat = HelperHeartbeat { [weak new] in
+            guard let proxy = new?.remoteObjectProxyWithErrorHandler({ _ in }) as? FanDeskHelperProtocol else { return }
+            proxy.request(heartbeatData) { _ in }
+        }
+        return new
     }
     private func send(_ request: HelperRequest, completion: @escaping (HelperResponse?) -> Void) {
         if let injectedTransport {
+            if heartbeat == nil && request.command != .automatic {
+                heartbeat = HelperHeartbeat { injectedTransport(HelperRequest(.heartbeat)) { _ in } }
+            }
             injectedTransport(request) { result in DispatchQueue.main.async { completion(result) } }
             return
         }
@@ -451,7 +477,7 @@ final class DeskModel: ObservableObject {
         polling = true
         let epoch = controlEpoch
         if injectedTransport != nil || helperStatus == .enabled {
-            send(HelperRequest(.heartbeat)) { [weak self] response in
+            send(HelperRequest(.status)) { [weak self] response in
                 guard let self, !closing else { return }
                 guard epoch == controlEpoch, !sleeping else { return }
                 if let response { accept(response); polling = false }
@@ -476,6 +502,7 @@ final class DeskModel: ObservableObject {
     func prepareForSleep() {
         guard !closing, !sleeping else { return }
         sleeping = true; startupPending = false; resumePreset = intendedPreset; wakePending = false
+        heartbeat = nil
         controlEpoch += 1; controlBusy = false; active = nil; polling = false
         let sleepingConnection = connection
         logger.info("Sleep: releasing fan control")
@@ -490,12 +517,13 @@ final class DeskModel: ObservableObject {
         guard !closing else { return }
         sleeping = false; wakePending = true; polling = false; helperReady = false
         controlEpoch += 1; controlBusy = false
+        heartbeat = nil
         connection?.invalidate(); connection = nil
         logger.info("Wake: reconnecting fan control")
         poll()
     }
     func shutdown(_ completion: @escaping () -> Void) {
-        closing = true; timer?.invalidate()
+        closing = true; timer?.invalidate(); heartbeat = nil
         guard connection != nil else { completion(); return }
         send(HelperRequest(.automatic)) { [weak self] _ in self?.connection?.invalidate(); completion() }
     }

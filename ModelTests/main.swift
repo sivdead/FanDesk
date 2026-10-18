@@ -25,8 +25,13 @@ final class FakeLogin: LoginManaging {
 }
 final class FakeTransport {
     struct Pending { let request: HelperRequest; let reply: (HelperResponse?) -> Void }
-    var pending: [Pending] = []
-    func send(_ request: HelperRequest, reply: @escaping (HelperResponse?) -> Void) { pending.append(Pending(request: request, reply: reply)) }
+    private let lock = NSLock()
+    private var requests: [Pending] = []
+    var pending: [Pending] { lock.lock(); defer { lock.unlock() }; return requests }
+    func send(_ request: HelperRequest, reply: @escaping (HelperResponse?) -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        requests.append(Pending(request: request, reply: reply))
+    }
 }
 let fans = [FanReading(id: 0, actual: 1350, target: 1350, minimum: 1350, maximum: 5349, mode: 0),
             FanReading(id: 1, actual: 1350, target: 1350, minimum: 1350, maximum: 5777, mode: 0)]
@@ -61,10 +66,13 @@ do {
     check(second.fans[0].rpm == 2222 && second.fans[1].rpm == 3333, "second application preserves first fan")
     transport.pending[1].reply(response(second)); drain()
     check(model.draft.fans == second.fans, "saving after a fan shortcut uses actual running configuration")
+    let draftBeforeFullSpeed = model.draft
     model.fullBlast()
     let full = transport.pending[2].request.preset!
     transport.pending[2].reply(response(full)); drain()
-    check(model.draft.fans.map(\.rpm) == [5349,5777], "full speed draft reflects hardware limits")
+    check(model.draft == draftBeforeFullSpeed, "full speed does not replace the preset editor")
+    model.useActiveConfiguration()
+    check(model.draft.fans.map(\.rpm) == [5349,5777], "explicit read-current exposes full speed at hardware limits")
     model.draft.name = "全速保存"; model.save(asNew: true)
     check(model.saved.presets.last?.fans == full.fans, "saving full speed stores the running settings")
     check(model.saved.presets.last?.id == model.active?.id, "first save of running custom settings keeps control identity")
@@ -73,6 +81,29 @@ do {
     check(transport.pending[3].request.command == .automatic, "deleting the running saved custom preset first releases hardware")
     transport.pending[3].reply(response()); drain()
     check(model.active == nil && !model.saved.presets.contains(where: { $0.id == savedFullID }), "running preset deletion completes only after automatic reset")
+}
+do {
+    let (model, transport, _, url) = fixture("full-speed-shortcut")
+    let original = model.draft
+    model.saved.presets.append(Preset(name: "工作", fans: [FanSetting(mode: .constant, rpm: 2400), FanSetting()]))
+    let savedPresets = model.saved.presets
+    model.fullBlast()
+    let full = transport.pending[0].request.preset!
+    check(full.fans.map(\.rpm) == fans.map(\.maximum) && full.fans.allSatisfy { $0.mode == .constant },
+          "full speed requests both fans' hardware maximums immediately")
+    transport.pending[0].reply(response(full)); drain()
+    check(model.active == full && model.saved.lastApplied == full, "temporary full speed becomes the running control")
+    check(model.draft == original && !model.hasUnsavedChanges && model.saved.presets == savedPresets,
+          "temporary full speed does not manufacture unsaved preset edits")
+    let persisted = try SavedState.load(from: url)
+    check(persisted.presets == savedPresets, "full speed leaves saved presets intact on disk")
+    let second = model.saved.presets.first { $0.id != original.id }!
+    model.applySaved(second.id)
+    check(transport.pending.count == 2 && transport.pending[1].request.preset == second,
+          "switching from full speed to a saved preset applies directly without an unsaved-changes dialog")
+    transport.pending[1].reply(response(second)); drain()
+    check(model.active == second && model.draft == second && !model.hasUnsavedChanges,
+          "saved preset resumes normally after full speed")
 }
 do {
     let (model, transport, _, _) = fixture("other-edits")
@@ -115,7 +146,7 @@ do {
     model.prepareForSleep()
     let oldSleepReply = transport.pending[1].reply
     model.resumeFromSleep()
-    check(transport.pending[2].request.command == .heartbeat, "wake reconnects and requests current status")
+    check(transport.pending[2].request.command == .status, "wake reconnects and requests current status")
     transport.pending[2].reply(response()); drain()
     check(transport.pending.count == 4 && transport.pending[3].request.preset == preset, "sleep recovery uses successful intent, not transient active")
     transport.pending[3].reply(response(preset)); drain()
@@ -184,6 +215,26 @@ do {
 }
 func event(_ id: AEEventID = AEEventID(0x6f617070)) -> NSAppleEventDescriptor {
     NSAppleEventDescriptor(eventClass: AEEventClass(0x61657674), eventID: id, targetDescriptor: nil, returnID: AEReturnID(-1), transactionID: AETransactionID(0))
+}
+do {
+    let (model, transport, _, _) = fixture("blocked-ui-heartbeat")
+    model.fullBlast()
+    transport.pending[0].reply(response(transport.pending[0].request.preset)); drain()
+    // Reproduce the main-thread stall seen when SwiftUI first builds the RPM editor.
+    Thread.sleep(forTimeInterval: 6.2)
+    let renewals = transport.pending.filter { $0.request.command == .heartbeat }.count
+    check(renewals >= 2, "helper heartbeats continue while the main thread is blocked longer than its lease")
+    model.prepareForSleep()
+    let beforeSleep = transport.pending.filter { $0.request.command == .heartbeat }.count
+    Thread.sleep(forTimeInterval: 2.4)
+    check(transport.pending.filter { $0.request.command == .heartbeat }.count == beforeSleep,
+          "sleep stops background lease renewal")
+    model.resumeFromSleep()
+    model.shutdown {}
+    let beforeShutdown = transport.pending.filter { $0.request.command == .heartbeat }.count
+    Thread.sleep(forTimeInterval: 2.4)
+    check(transport.pending.filter { $0.request.command == .heartbeat }.count == beforeShutdown,
+          "shutdown stops background lease renewal")
 }
 check(!isLoginLaunchEvent(event: nil), "nil is not a login launch")
 check(!isLoginLaunchEvent(event: event()), "normal launch is not hidden")

@@ -21,8 +21,8 @@ cat > "$app/Contents/Info.plist" <<EOF
 <key>CFBundleName</key><string>FanDesk</string>
 <key>CFBundleDisplayName</key><string>FanDesk</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.3</string>
-<key>CFBundleVersion</key><string>7</string>
+<key>CFBundleShortVersionString</key><string>0.2.4</string>
+<key>CFBundleVersion</key><string>11</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>

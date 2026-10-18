@@ -2,7 +2,7 @@
 
 ## 首次安装
 
-从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.3) 下载 **`FanDesk-0.2.3-macos-arm64-notarized.dmg`**，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
+从 [FanDesk Releases](https://github.com/sivdead/FanDesk/releases/tag/v0.2.4) 下载 **`FanDesk-0.2.4-macos-arm64-notarized.dmg`**，打开后把 FanDesk 拖到 Applications 文件夹。从 `/Applications/FanDesk.app` 启动，避免直接在磁盘映像中运行。
 
 当前包适用于 Apple Silicon 双风扇机型；已验证 Apple M5 Pro（Mac17,8），其他机型尚未实测。
 

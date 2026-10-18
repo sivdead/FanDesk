@@ -99,7 +99,8 @@ private struct FanControlCard: View {
                     .font(.callout).foregroundStyle(.secondary)
             case .constant:
                 HStack(spacing: 10) {
-                    Slider(value: rpmSlider, in: limits, step: 1)
+                    // The binding rounds RPM; a one-RPM step creates thousands of AppKit tick marks.
+                    Slider(value: rpmSlider, in: limits)
                         .accessibilityLabel("\(fanName(index))固定转速")
                     TextField("固定转速", value: value(\.rpm), format: .number.precision(.fractionLength(0)))
                         .textFieldStyle(.roundedBorder).frame(width: 74)

@@ -45,6 +45,8 @@ func runEnergyChecks() throws {
     _ = lease.status(now: 5.01)
     check(lease.active == nil && leaseHardware.targets.isEmpty,
           "the five-second lease expires even while the last sample is still fresh")
+    check(lease.failure?.contains("心跳中断") == true,
+          "lease expiry reports its cause instead of silently returning to automatic")
     check(lease.status(now: 5.1).snapshot?.fans.allSatisfy { $0.mode == 0 } == true,
           "lease expiry refreshes automatic-mode telemetry instead of returning stale manual status")
 

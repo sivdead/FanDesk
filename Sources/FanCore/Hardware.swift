@@ -133,7 +133,10 @@ public final class ControlEngine {
     }
     public func tick(now: Double) -> HelperResponse {
         if recoveryPending { automatic() }
-        if active != nil && now - lastHeartbeat > 5 { automatic() }
+        if active != nil && now - lastHeartbeat > 5 {
+            automatic()
+            if !recoveryPending { failure = "应用心跳中断超过 5 秒，风扇已恢复系统自动控制。" }
+        }
         do {
             let reading = try hardware.snapshot()
             if let preset = active {
